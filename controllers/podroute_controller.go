@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	cachev1alpha1 "github.com/austincunningham/pod-route/api/v1alpha1"
+	quayiov1alpha1 "github.com/austincunningham/pod-route/api/v1alpha1"
 )
 
 // PodrouteReconciler reconciles a Podroute object
@@ -33,9 +33,9 @@ type PodrouteReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=cache.quay.io,resources=podroutes,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cache.quay.io,resources=podroutes/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cache.quay.io,resources=podroutes/finalizers,verbs=update
+//+kubebuilder:rbac:groups=quay.io,resources=podroutes,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=quay.io,resources=podroutes/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=quay.io,resources=podroutes/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -57,6 +57,6 @@ func (r *PodrouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 // SetupWithManager sets up the controller with the Manager.
 func (r *PodrouteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&cachev1alpha1.Podroute{}).
+		For(&quayiov1alpha1.Podroute{}).
 		Complete(r)
 }

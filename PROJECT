@@ -12,7 +12,6 @@ resources:
     namespaced: true
   controller: true
   domain: quay.io
-  group: cache
   kind: Podroute
   path: github.com/austincunningham/pod-route/api/v1alpha1
   version: v1alpha1
