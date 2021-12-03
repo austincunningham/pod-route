@@ -5,7 +5,7 @@ metadata:
   name: podroute-viewer-role
 rules:
 - apiGroups:
-  - cache.quay.io
+  - quay.io
   resources:
   - podroutes
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - cache.quay.io
+  - quay.io
   resources:
   - podroutes/status
   verbs:

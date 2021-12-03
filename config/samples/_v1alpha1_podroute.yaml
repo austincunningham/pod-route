@@ -1,4 +1,4 @@
-apiVersion: cache.quay.io/v1alpha1
+apiVersion: quay.io/v1alpha1
 kind: Podroute
 metadata:
   name: podroute-sample
