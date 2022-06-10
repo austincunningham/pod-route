@@ -20,9 +20,11 @@ import (
 	"context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,13 +58,30 @@ func (r *PodrouteReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
+	//create deployment
 	deployment, err := r.createDeployment(cr, r.podRouteDeployment(cr))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	// just logging here to keep Go happy will use later
-	log.Log.Info("deployment", deployment)
+	// If the spec.size in the CR changes, update the deployment number of replicas
+	if deployment.Spec.Replicas != &cr.Spec.Replicas {
+		controllerutil.CreateOrUpdate(context.TODO(), r.Client, deployment, func() error {
+			deployment.Spec.Replicas = &cr.Spec.Replicas
+			return nil
+		})
+	}
+
+	// create service
+	err = r.createService(cr, r.podRouteService(cr))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// create route
+	err = r.createRoute(cr, r.podRouteRoute(cr))
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -90,7 +109,7 @@ func labels(cr *quayiov1alpha1.Podroute, tier string) map[string]string {
 // It doesn't create anything on cluster
 func (r *PodrouteReconciler) podRouteDeployment(cr *quayiov1alpha1.Podroute) *appsv1.Deployment {
 	// Build a Deployment
-	labels := labels(cr, "backend-Podroute")
+	labels := labels(cr, "backend-PodRoute")
 	size := cr.Spec.Replicas
 	podRouteDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -126,6 +145,55 @@ func (r *PodrouteReconciler) podRouteDeployment(cr *quayiov1alpha1.Podroute) *ap
 	return podRouteDeployment
 }
 
+// This is the equivalent of creating a service yaml and returning it
+// It doesnt create anything on cluster
+func (r PodrouteReconciler) podRouteService(cr *quayiov1alpha1.Podroute) *corev1.Service {
+	labels := labels(cr, "service-PodRoute")
+
+	podRouteService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "podroute-service",
+			Namespace: cr.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: labels,
+			Ports: []corev1.ServicePort{{
+				Protocol:   corev1.ProtocolTCP,
+				Port:       8080,
+				TargetPort: intstr.FromInt(8080),
+			}},
+		},
+	}
+
+	controllerutil.SetControllerReference(cr, podRouteService, r.Scheme)
+	return podRouteService
+}
+
+// This is the equivalent of creating a route yaml file and returning it
+// It doesn't create anything on cluster
+func (r PodrouteReconciler) podRouteRoute(cr *quayiov1alpha1.Podroute) *routev1.Route {
+	labels := labels(cr, "route-PodRoute")
+
+	always200Route := &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "podroute",
+			Namespace: cr.Namespace,
+			Labels:    labels,
+		},
+		Spec: routev1.RouteSpec{
+			To: routev1.RouteTargetReference{
+				Kind: "Service",
+				Name: "podroute-service",
+			},
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.FromInt(8080),
+			},
+		},
+	}
+
+	return always200Route
+}
+
 // check for a deployment if it doesn't exist it creates one on cluster using the deployment created in deployment
 func (r PodrouteReconciler) createDeployment(cr *quayiov1alpha1.Podroute, deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	// check for a deployment in the namespace
@@ -140,4 +208,36 @@ func (r PodrouteReconciler) createDeployment(cr *quayiov1alpha1.Podroute, deploy
 		}
 	}
 	return found, nil
+}
+
+// check for a service if it doesn't exist it creates one on cluster using the service created in podRouteService
+func (r PodrouteReconciler) createService(cr *quayiov1alpha1.Podroute, podRouteServcie *corev1.Service) error {
+	// check for a deployment in the namespace
+	found := &corev1.Service{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: podRouteServcie.Name, Namespace: cr.Namespace}, found)
+	if err != nil {
+		log.Log.Info("Creating Service")
+		err = r.Client.Create(context.TODO(), podRouteServcie)
+		if err != nil {
+			log.Log.Error(err, "Failed to create Service")
+			return err
+		}
+	}
+	return nil
+}
+
+// check for a route if it doesn't exist it creates one on cluster using the route created in podRouteRoute
+func (r PodrouteReconciler) createRoute(cr *quayiov1alpha1.Podroute, podRouteRoute *routev1.Route) error {
+	// check for a deployment in the namespace
+	found := &routev1.Route{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: podRouteRoute.Name, Namespace: cr.Namespace}, found)
+	if err != nil {
+		log.Log.Info("Creating Route")
+		err = r.Client.Create(context.TODO(), podRouteRoute)
+		if err != nil {
+			log.Log.Error(err, "Failed to create Route")
+			return err
+		}
+	}
+	return nil
 }
