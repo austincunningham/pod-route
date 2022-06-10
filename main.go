@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	routev1 "github.com/openshift/api/route/v1"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -93,6 +94,10 @@ func main() {
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+	if err := routev1.AddToScheme(mgr.GetScheme()); err != nil {
+		setupLog.Error(err, "failed to add routev1 to scheme")
 		os.Exit(1)
 	}
 

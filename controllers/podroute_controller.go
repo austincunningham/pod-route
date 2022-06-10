@@ -100,7 +100,7 @@ func labels(cr *quayiov1alpha1.Podroute, tier string) map[string]string {
 
 	return map[string]string{
 		"app":         "PodRoute",
-		"PodRoute_cr": cr.Name,
+		"podroute_cr": cr.Name,
 		"tier":        tier,
 	}
 }
@@ -109,11 +109,11 @@ func labels(cr *quayiov1alpha1.Podroute, tier string) map[string]string {
 // It doesn't create anything on cluster
 func (r *PodrouteReconciler) podRouteDeployment(cr *quayiov1alpha1.Podroute) *appsv1.Deployment {
 	// Build a Deployment
-	labels := labels(cr, "backend-PodRoute")
+	labels := labels(cr, "backend-podroute")
 	size := cr.Spec.Replicas
 	podRouteDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "PodRoute",
+			Name:      "pod-route",
 			Namespace: cr.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -129,10 +129,10 @@ func (r *PodrouteReconciler) podRouteDeployment(cr *quayiov1alpha1.Podroute) *ap
 					Containers: []corev1.Container{{
 						Image:           cr.Spec.Image,
 						ImagePullPolicy: corev1.PullAlways,
-						Name:            "PodRoute-pod",
+						Name:            "podroute-pod",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
-							Name:          "PodRoute",
+							Name:          "podroute",
 						}},
 					}},
 				},
@@ -146,9 +146,9 @@ func (r *PodrouteReconciler) podRouteDeployment(cr *quayiov1alpha1.Podroute) *ap
 }
 
 // This is the equivalent of creating a service yaml and returning it
-// It doesnt create anything on cluster
+// It doesn't create anything on cluster
 func (r PodrouteReconciler) podRouteService(cr *quayiov1alpha1.Podroute) *corev1.Service {
-	labels := labels(cr, "service-PodRoute")
+	labels := labels(cr, "backend-podroute")
 
 	podRouteService := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -172,11 +172,11 @@ func (r PodrouteReconciler) podRouteService(cr *quayiov1alpha1.Podroute) *corev1
 // This is the equivalent of creating a route yaml file and returning it
 // It doesn't create anything on cluster
 func (r PodrouteReconciler) podRouteRoute(cr *quayiov1alpha1.Podroute) *routev1.Route {
-	labels := labels(cr, "route-PodRoute")
+	labels := labels(cr, "backend-podroute")
 
-	always200Route := &routev1.Route{
+	podRouteRoute := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "podroute",
+			Name:      "podroute-route",
 			Namespace: cr.Namespace,
 			Labels:    labels,
 		},
@@ -190,8 +190,8 @@ func (r PodrouteReconciler) podRouteRoute(cr *quayiov1alpha1.Podroute) *routev1.
 			},
 		},
 	}
-
-	return always200Route
+	controllerutil.SetControllerReference(cr, podRouteRoute, r.Scheme)
+	return podRouteRoute
 }
 
 // check for a deployment if it doesn't exist it creates one on cluster using the deployment created in deployment
@@ -200,7 +200,7 @@ func (r PodrouteReconciler) createDeployment(cr *quayiov1alpha1.Podroute, deploy
 	found := &appsv1.Deployment{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: deployment.Name, Namespace: cr.Namespace}, found)
 	if err != nil {
-		log.Log.Info("Creating deployment")
+		log.Log.Info("Creating Deployment")
 		err = r.Client.Create(context.TODO(), deployment)
 		if err != nil {
 			log.Log.Error(err, "Failed to create deployment")

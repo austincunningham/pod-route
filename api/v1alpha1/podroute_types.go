@@ -30,8 +30,8 @@ type PodrouteSpec struct {
 
 	// Image container image string e.g. "quay.io/austincunningham/always200:latest"
 	// Replicas number of containers to spin up
-	Image string `json:"image,omitempty"`
-	Replicas int32 `json:"replicas,omitempty"`
+	Image    string `json:"image,omitempty"`
+	Replicas int32  `json:"replicas,omitempty"`
 }
 
 // PodrouteStatus defines the observed state of Podroute
