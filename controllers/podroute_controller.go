@@ -212,7 +212,7 @@ func (r PodrouteReconciler) createDeployment(cr *quayiov1alpha1.Podroute, deploy
 
 // check for a service if it doesn't exist it creates one on cluster using the service created in podRouteService
 func (r PodrouteReconciler) createService(cr *quayiov1alpha1.Podroute, podRouteServcie *corev1.Service) error {
-	// check for a deployment in the namespace
+	// check for a service in the namespace
 	found := &corev1.Service{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: podRouteServcie.Name, Namespace: cr.Namespace}, found)
 	if err != nil {
@@ -228,7 +228,7 @@ func (r PodrouteReconciler) createService(cr *quayiov1alpha1.Podroute, podRouteS
 
 // check for a route if it doesn't exist it creates one on cluster using the route created in podRouteRoute
 func (r PodrouteReconciler) createRoute(cr *quayiov1alpha1.Podroute, podRouteRoute *routev1.Route) error {
-	// check for a deployment in the namespace
+	// check for a route in the namespace
 	found := &routev1.Route{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: podRouteRoute.Name, Namespace: cr.Namespace}, found)
 	if err != nil {
