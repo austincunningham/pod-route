@@ -3,4 +3,5 @@ kind: Podroute
 metadata:
   name: podroute-sample
 spec:
-  # Add fields here
+  image: quay.io/austincunningham/always200:latest # can be any container exposed on 8080
+  replicas: 3 # number of replicas/pods
